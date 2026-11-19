@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="MaluStock">
+<meta name="theme-color" content="#f4f2f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#161615" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>MaluStock</title>
+<style>
+  :root{ --sans:"Segoe UI Variable","Segoe UI",Inter,system-ui,-apple-system,sans-serif;
+    --mono:"Cascadia Mono",Consolas,"JetBrains Mono",ui-monospace,monospace; }
+  :root{
+    --bg:#f4f2f6; --card:#ffffff; --ink:#1d1d1b; --muted:#6b6862; --line:#e3dfd8;
+    --accent:#7b3fb3; --accent-soft:#f0e6f9; --warn:#a33a2a; --warn-soft:#f6e4e0; --ok:#2e7d4f;
+    --c1:#7b3fb3; --c2:#1f5f5b; --c3:#6b8fb3; --c4:#a35d7a; --c5:#7a9a4a; --c6:#b5654a; --c7:#5f5b8f; --c8:#8a8378;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#161615; --card:#21211f; --ink:#f1efe9; --muted:#a09d96; --line:#34332f;
+      --accent:#b98cf0; --accent-soft:#2c2039; --warn:#ef8d7c; --warn-soft:#3a2521; --ok:#7fcf9c;
+      --c1:#b98cf0; --c2:#6cc2b8; --c3:#8fb3d9; --c4:#d48fae; --c5:#a8c77a; --c6:#e0907a; --c7:#a19ce0; --c8:#b3ada3; }
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    -webkit-tap-highlight-color:transparent;overscroll-behavior-y:none}
+  button{touch-action:manipulation;-webkit-user-select:none;user-select:none}
+  .wrap{max-width:640px;margin:0 auto;padding:28px 18px 60px}
+  /* topo + menu (igual à calculadora) */
+  .top{display:flex;align-items:center;gap:12px;margin-bottom:12px;position:relative}
+  .top h1{margin:0;font-size:22px;font-weight:700;letter-spacing:-.01em}
+  .menu-btn{width:44px;height:44px;flex:none;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;display:grid;place-items:center;cursor:pointer}
+  .menu-btn svg{width:22px;height:22px}
+  .menu-bg{position:fixed;inset:0;background:rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .15s;z-index:10}
+  .menu{position:absolute;top:52px;left:0;z-index:11;width:min(320px,100%);background:var(--card);border:1px solid var(--line);border-radius:14px;padding:6px;box-shadow:0 10px 30px rgba(0,0,0,.15);opacity:0;transform:translateY(-6px);pointer-events:none;transition:opacity .15s,transform .15s}
+  .open .menu-bg{opacity:1;pointer-events:auto}
+  .open .menu{opacity:1;transform:none;pointer-events:auto}
+  .tab{display:flex;align-items:center;gap:12px;width:100%;border:0;background:transparent;color:var(--ink);text-align:left;padding:10px;border-radius:10px;cursor:pointer;font:inherit}
+  .tab .ic{width:36px;height:36px;flex:none;border-radius:10px;background:var(--bg);display:grid;place-items:center;color:var(--accent);font:700 14px var(--sans)}
+  .tab b{display:block;font-weight:600;font-size:15px}
+  .tab small{display:block;color:var(--muted);font-size:12.5px}
+  .tab[aria-current="true"]{background:var(--accent-soft)}
+  .tab[aria-current="true"] .ic{background:var(--accent);color:#fff}
+  @media (prefers-color-scheme: dark){ .tab[aria-current="true"] .ic{color:#1f0f2e} }
+  .sep{height:1px;background:var(--line);margin:6px 8px}
+  /* mês */
+  .month{display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:14px}
+  .month button{width:44px;height:38px;border:0;background:transparent;color:var(--accent);font:600 22px var(--sans);border-radius:9px;cursor:pointer}
+  .month span{font-weight:600;font-size:15px}
+  /* cartões e campos */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:14px}
+  .card h2{font-size:15px;margin:0 0 14px;font-weight:600}
+  .card h2 small{font-weight:400;color:var(--muted);font-size:13px}
+  .panel{display:none}.panel.on{display:block}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .full{grid-column:1/-1}
+  .grid>div{min-width:0}
+  .field{min-width:0;width:100%}
+  input[type=date],input[type=month]{display:block;max-width:100%}
+  label{display:block;font-size:13px;font-weight:500;color:var(--muted);margin-bottom:6px}
+  .field{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--bg);overflow:hidden}
+  .field:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .field span{padding:0 0 0 12px;color:var(--muted);font-size:14px;white-space:nowrap}
+  input,select{border:0;background:transparent;color:var(--ink);font:500 16px var(--sans);padding:11px 12px;width:100%;min-width:0;outline:none;-webkit-appearance:none;appearance:none}
+  input[type=date],input[type=month]{min-height:44px}
+  select{cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 17px) 52%,calc(100% - 12px) 52%;background-size:5px 5px;background-repeat:no-repeat;padding-right:30px}
+  /* lista de opções ao selecionar: sempre letra preta em fundo claro */
+  select option,select optgroup{color:#1d1d1b;background:#ffffff}
+  .money input{font-family:var(--mono);font-weight:600}
+  .seg{display:flex;flex-wrap:wrap;gap:6px}
+  .seg button{border:1px solid var(--line);background:transparent;color:var(--ink);font:500 13px var(--sans);padding:7px 12px;border-radius:999px;cursor:pointer}
+  .seg button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  @media (prefers-color-scheme: dark){ .seg button.on{color:#1f0f2e} }
+  .check{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--ink);cursor:pointer;margin:0}
+  .check input{width:22px;height:22px;padding:0;flex:none;border:1.5px solid var(--line);border-radius:6px;background:var(--bg);position:relative;cursor:pointer}
+  .check input:checked{background:var(--accent);border-color:var(--accent)}
+  .check input:checked::after{content:"";position:absolute;left:6px;top:2px;width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+  .btns{display:flex;gap:8px;margin-top:16px}
+  .btn{flex:1;border:1px solid var(--accent);background:var(--accent);color:#fff;font:600 15px var(--sans);padding:12px;border-radius:10px;cursor:pointer}
+  @media (prefers-color-scheme: dark){ .btn{color:#1f0f2e} }
+  .btn.ghost{background:transparent;color:var(--accent)}
+  .btn.del{background:transparent;border-color:var(--line);color:var(--warn);flex:none;padding:12px 14px}
+  .linkbtn{border:0;background:none;color:var(--accent);font:500 13px var(--sans);cursor:pointer;padding:4px 0}
+  .hint{font-size:12.5px;color:var(--muted);margin-top:8px}
+  /* listas */
+  .lhead{display:flex;gap:10px;justify-content:space-between;align-items:baseline;margin:4px 2px 8px;font-size:13px;font-weight:600;color:var(--muted)}
+  .lhead b{font:600 14px var(--mono);color:var(--ink)}
+  .list{list-style:none;margin:0 0 14px;padding:0;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .list li{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--line)}
+  .list li:last-child{border-bottom:0}
+  .list li.tap{cursor:pointer}
+  .list li.editing{background:var(--accent-soft)}
+  .list .g{flex:1;min-width:0}
+  .list .t{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .list .s{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .list .v{font:600 14.5px var(--mono);white-space:nowrap;text-align:right}
+  .list .v.in{color:var(--ok)}
+  .list li.empty{color:var(--muted);justify-content:center;font-size:14px;padding:18px}
+  .list li.day{background:var(--bg);font-size:12px;font-weight:600;color:var(--muted);padding:6px 14px}
+  .pill{display:inline-block;font:600 11px var(--sans);padding:2px 7px;border-radius:999px;background:var(--bg);color:var(--muted);margin-left:4px;vertical-align:1px}
+  .pill.ok{background:var(--accent-soft);color:var(--accent)}
+  .pill.warn{background:var(--warn-soft);color:var(--warn)}
+  .mini{width:118px;flex:none}
+  .mini input{padding:8px 8px 8px 4px;font:600 14px var(--mono);text-align:right}
+  .mini span{font-size:12px;padding-left:8px}
+  /* resultado */
+  .result{padding:16px 18px;border-radius:12px;background:var(--accent-soft);margin-bottom:12px}
+  .result .lbl{font-size:13px;color:var(--muted)}
+  .result .val{font:600 30px var(--mono);color:var(--accent)}
+  .result.neg .val{color:var(--warn)}
+  .result.neg{background:var(--warn-soft)}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+  .stat{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--card)}
+  .stat .lbl{font-size:12px;color:var(--muted)}
+  .stat .v{font:600 16px var(--mono);margin-top:2px}
+  .bar{display:flex;height:10px;border-radius:999px;overflow:hidden;background:var(--line)}
+  .bar i{display:block;height:100%}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);margin-top:8px}
+  .legend b{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:middle}
+  .rows .r{padding:9px 0;border-bottom:1px solid var(--line)}
+  .rows .r:last-child{border-bottom:0}
+  .rows .rt{display:flex;justify-content:space-between;gap:10px;font-size:14.5px;margin-bottom:6px}
+  .rows .rt span:last-child{font:600 14px var(--mono);white-space:nowrap}
+  .rows .rt small{color:var(--muted);font:400 12px var(--sans);margin-left:6px}
+  .rows .bar{height:6px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px}
+  .tags button{border:1px solid var(--line);background:var(--bg);color:var(--ink);font:500 13px var(--sans);padding:7px 11px;border-radius:999px;cursor:pointer}
+  .tags button.add{color:var(--accent);border-style:dashed;border-color:var(--accent)}
+  /* diálogo e aviso */
+  .dlg{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;padding:24px}
+  .dlg .box{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;width:100%;max-width:360px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+  .dlg p{margin:0 0 12px;font-size:15.5px}
+  .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;z-index:60;transition:opacity .3s;white-space:nowrap}
+  @media (max-width:520px){
+    .wrap{padding:16px 12px 40px}
+    .top h1{font-size:20px}
+    .card{padding:14px;border-radius:14px}
+    .grid{gap:10px}
+  }
+  /* MaluStock */
+  .cb{width:54px;height:46px;flex:none;border-radius:11px;background:var(--accent-soft);color:var(--accent);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05}
+  .cb b{font:700 15px var(--mono)}
+  .cb small{font:600 10.5px var(--sans);opacity:.85;margin-top:2px}
+  .cb.zero{background:var(--warn-soft);color:var(--warn)}
+  .qt{font:700 20px var(--mono);min-width:44px;text-align:right}
+  .qt small{display:block;font:500 10.5px var(--sans);color:var(--muted);text-align:right}
+  .qt.low{color:var(--warn)}
+  .step{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--bg);flex:none}
+  .step button{width:38px;height:38px;border:0;background:transparent;color:var(--accent);font:600 22px var(--sans);cursor:pointer;padding:0}
+  .step span{min-width:26px;text-align:center;font:700 16px var(--mono)}
+  .list li.sel{background:var(--accent-soft)}
+  .list li.sel .step{border-color:var(--accent)}
+  .sticky{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom));z-index:5;margin-top:6px}
+  .sticky .btn{width:100%;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:14px}
+  .search{margin-bottom:10px}
+  .search input{padding-left:4px}
+  .chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chips button{flex:none;border:1px solid var(--line);background:var(--card);color:var(--ink);font:500 13px var(--sans);padding:7px 12px;border-radius:999px;cursor:pointer}
+  .chips button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  @media (prefers-color-scheme: dark){ .chips button.on{color:#1f0f2e} }
+  .stats.three{grid-template-columns:repeat(3,1fr)}
+  .list .v.out{color:var(--warn)}
+  .dlg h3{margin:0 0 2px;font-size:17px}
+  .dlg .sub{color:var(--muted);font-size:13.5px;margin-bottom:14px}
+  .vbtns{display:flex;flex-direction:column;gap:8px}
+  .vbtns .btn{flex:none}
+  .list .s.wrap{white-space:normal}
+  .nm{font-family:var(--mono);font-weight:700;letter-spacing:.02em;white-space:pre}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top" id="top">
+    <button class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <h1 id="title">Estoque</h1>
+    <div class="menu-bg" id="menuBg"></div>
+    <nav class="menu" id="menu">
+      <button class="tab" data-tab="estoque"><span class="ic">▤</span><span><b>Estoque</b><small>Diâmetro, agulhas e tipo · ex.: 10 07 RL</small></span></button>
+      <button class="tab" data-tab="saida"><span class="ic">−</span><span><b>Saída · uso</b><small>Cartuchos usados em uma sessão</small></span></button>
+      <button class="tab" data-tab="entrada"><span class="ic">+</span><span><b>Entrada</b><small>Compra ou reposição</small></span></button>
+      <button class="tab" data-tab="historico"><span class="ic">◷</span><span><b>Histórico</b><small>O que foi usado, quando e em quem</small></span></button>
+      <div class="sep"></div>
+      <button class="tab" data-tab="ajustes"><span class="ic">⚙</span><span><b>Ajustes</b><small>Marcas, backup e exportação</small></span></button>
+    </nav>
+  </header>
+
+  <div class="month" id="monthBar">
+    <button onclick="A.mes(-1)" aria-label="Mês anterior">‹</button>
+    <span id="monthLbl"></span>
+    <button onclick="A.mes(1)" aria-label="Próximo mês">›</button>
+  </div>
+
+  <section class="panel" id="estoque"></section>
+  <section class="panel" id="saida"></section>
+  <section class="panel" id="entrada"></section>
+  <section class="panel" id="historico"></section>
+  <section class="panel" id="ajustes"></section>
+</div>
+<datalist id="dlCli"></datalist>
+
+<script>
+'use strict';
+const KEY='malustock_v1';
+const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const DIAS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const TITULOS={estoque:'Estoque',saida:'Saída · uso',entrada:'Entrada',historico:'Histórico',ajustes:'Ajustes'};
+const TIPOS=[['RL','Round Liner'],['RS','Round Shader'],['M1','Magnum'],['RM','Curved Magnum'],['F','Flat'],['','Sem tipo']];
+const DIAMS=['08','10','12'];
+
+/* ---------- utilidades ---------- */
+const $=id=>document.getElementById(id);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const pad=n=>String(n).padStart(2,'0');
+const hoje=()=>{const t=new Date();return `${t.getFullYear()}-${pad(t.getMonth()+1)}-${pad(t.getDate())}`};
+function addMes(ym,n){const[y,m]=ym.split('-').map(Number);const t=new Date(y,m-1+n,1);return `${t.getFullYear()}-${pad(t.getMonth()+1)}`}
+const nomeMes=ym=>{const[y,m]=ym.split('-').map(Number);return `${MESES[m-1]} ${y}`};
+const dataBR=d=>d.split('-').reverse().join('/');
+const diaBR=d=>{const[y,m,dd]=d.split('-').map(Number);return `${DIAS[new Date(y,m-1,dd).getDay()]}, ${pad(dd)}/${pad(m)}/${y}`};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+const inteiro=s=>{const n=parseInt(String(s||'').replace(/\D/g,''),10);return isFinite(n)?n:null};
+
+/* ---------- dados ---------- */
+// carts: {id, marca, diam, agulhas, tipo, cod, min, arq}  (diam: 08, 10 ou 12)
+// movs:  {id, tipo:'sai'|'ent'|'aj', data, cliente, obs, itens:[{c,q}]}  (aj: q com sinal)
+function padrao(){return{v:1,marcas:[],carts:[],movs:[]}}
+let S;try{S=JSON.parse(localStorage.getItem(KEY))||padrao()}catch(e){S=padrao()}
+S=Object.assign(padrao(),S);
+// versões antigas guardavam milímetros (0,25/0,30/0,35) — converte para diâmetro
+function migrar(){S.carts.forEach(c=>{if(c.diam==null){c.diam=({'0,25':'08','0,30':'10','0,35':'12'})[c.mm]||'10';delete c.mm}})}
+migrar();
+function salvar(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('Não foi possível salvar')}}
+
+const UI={tab:'estoque',mes:hoje().slice(0,7),edit:{cart:null,mov:null},cartForm:false,
+  busca:'',marca:'',baixa:false,mbusca:'',hfiltro:'tudo',hbusca:'',
+  sel:{},mdata:hoje(),mcli:'',mobs:''};
+try{const t=localStorage.getItem('ms-tab');if(t&&TITULOS[t])UI.tab=t}catch(e){}
+
+const cart=id=>S.carts.find(c=>c.id===id);
+const ativos=()=>S.carts.filter(c=>!c.arq).sort(ordem);
+function ordem(a,b){return a.marca.localeCompare(b.marca,'pt')||a.tipo.localeCompare(b.tipo)||(+a.diam)-(+b.diam)||a.agulhas-b.agulhas||(a.cod||'').localeCompare(b.cod||'')}
+const conf=c=>`${c.agulhas}${c.tipo}`;
+const busc=c=>norm(nomeCart(c)+' '+(TIPOS.find(t=>t[0]===c.tipo)?.[1]||''));
+const nomen=c=>`${c.diam} ${pad(c.agulhas)}${c.tipo?' '+c.tipo:''}`;
+const nomeCart=c=>c?`${nomen(c)} ${c.marca}${c.cod?' ('+c.cod+')':''}`:'(cartucho excluído)';
+const sinal=(m,q)=>m.tipo==='sai'?-q:q;
+function estoqueMap(exceto){const e={};S.carts.forEach(c=>e[c.id]=0);
+  S.movs.forEach(m=>{if(m.id===exceto)return;m.itens.forEach(i=>{if(i.c in e)e[i.c]+=sinal(m,i.q)})});return e}
+const totalItens=m=>m.itens.reduce((s,i)=>s+Math.abs(i.q),0);
+const baixo=(c,q)=>q<=0||(c.min!=null&&c.min>0&&q<=c.min);
+function clientes(){const m=new Map();S.movs.filter(x=>x.tipo==='sai'&&x.cliente).sort((a,b)=>b.data.localeCompare(a.data)).forEach(x=>{const k=norm(x.cliente);if(!m.has(k))m.set(k,x.cliente)});return[...m.values()]}
+
+/* ---------- interface ---------- */
+function toast(t){document.querySelectorAll('.toast').forEach(x=>x.remove());const e=document.createElement('div');e.className='toast';e.textContent=t;document.body.appendChild(e);setTimeout(()=>{e.style.opacity=0;setTimeout(()=>e.remove(),300)},1700)}
+function dialogo(html,ligar){const d=document.createElement('div');d.className='dlg';d.innerHTML=`<div class="box">${html}</div>`;d.onclick=e=>{if(e.target===d)d.remove()};document.body.appendChild(d);ligar&&ligar(d);return d}
+function confirmar(msg,ok,txt='Excluir',cor='var(--warn)'){dialogo(`<p>${esc(msg)}</p><div class="btns"><button class="btn ghost" data-n>Cancelar</button><button class="btn" style="background:${cor};border-color:${cor}" data-s>${txt}</button></div>`,d=>{
+  d.querySelector('[data-n]').onclick=()=>d.remove();d.querySelector('[data-s]').onclick=()=>{d.remove();ok()}})}
+function perguntar(msg,valor,ok,mode=''){dialogo(`<p>${esc(msg)}</p><div class="field"><input value="${esc(valor||'')}" ${mode?`inputmode="${mode}"`:''}></div><div class="btns"><button class="btn ghost" data-n>Cancelar</button><button class="btn" data-s>OK</button></div>`,d=>{
+  const i=d.querySelector('input');const fim=()=>{const v=i.value.trim();d.remove();if(v)ok(v)};
+  d.querySelector('[data-n]').onclick=()=>d.remove();d.querySelector('[data-s]').onclick=fim;i.onkeydown=e=>{if(e.key==='Enter')fim()};setTimeout(()=>i.focus(),50)})}
+
+const top_=$('top'),menuBtn=$('menuBtn');
+function setMenu(o){top_.classList.toggle('open',o);menuBtn.setAttribute('aria-expanded',o)}
+menuBtn.onclick=()=>setMenu(!top_.classList.contains('open'));
+$('menuBg').onclick=()=>setMenu(false);
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{A.ir(b.dataset.tab);setMenu(false)});
+
+function render(){
+  document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-current',b.dataset.tab===UI.tab));
+  document.querySelectorAll('.panel').forEach(p=>{p.classList.toggle('on',p.id===UI.tab);if(p.id!==UI.tab)p.innerHTML=''});
+  $('title').textContent=UI.edit.mov&&(UI.tab==='saida'||UI.tab==='entrada')?'Editar '+(UI.tab==='saida'?'saída':'entrada'):TITULOS[UI.tab];
+  $('monthBar').style.display=UI.tab==='historico'&&!UI.hbusca?'flex':'none';
+  $('monthLbl').textContent=nomeMes(UI.mes);
+  $('dlCli').innerHTML=clientes().map(c=>`<option value="${esc(c)}">`).join('');
+  $(UI.tab).innerHTML=({estoque:vEstoque,saida:()=>vMov('sai'),entrada:()=>vMov('ent'),historico:vHistorico,ajustes:vAjustes})[UI.tab]();
+}
+
+/* ---------- ESTOQUE ---------- */
+const optsMarca=sel=>S.marcas.map(m=>`<option ${m===sel?'selected':''}>${esc(m)}</option>`).join('');
+function formCart(){
+  const id=UI.edit.cart,c=id?cart(id):null,est=estoqueMap();
+  const dm=c?.diam||UI.ultDiam||'10';
+  return `<div class="card"><h2>${c?'Editar cartucho':'Novo cartucho'}</h2><div class="grid">
+    <div class="full"><label>Marca</label><div class="field"><select id="cm" onchange="A.novaMarcaSel(this)">${S.marcas.length?'':'<option value="">Escolha…</option>'}${optsMarca(c?.marca||UI.ultMarca)}<option value="__nova">＋ Nova marca…</option></select></div></div>
+    <div class="full"><label>Diâmetro da agulha</label><div class="seg" id="cdm">${DIAMS.map(k=>`<button type="button" data-k="${k}" class="${dm===k?'on':''}" onclick="A.tipo(this)" style="min-width:64px;font-family:var(--mono);font-weight:700;font-size:15px">${k}</button>`).join('')}</div></div>
+    <div class="full"><label>Nº de agulhas</label><div class="field"><input id="ca" inputmode="numeric" placeholder="Ex.: 7" value="${c?c.agulhas:''}"></div></div>
+    <div class="full"><label>Tipo de agulha</label><div class="seg" id="ct">${TIPOS.map(([k,n])=>`<button type="button" data-k="${k}" class="${(c?c.tipo:UI.ultTipo??'RL')===k?'on':''}" onclick="A.tipo(this)">${k?`<b>${k}</b> · ${n}`:n}</button>`).join('')}</div></div>
+    <div class="full"><label>Código / observação <span style="font-weight:400">(opcional)</span></label><div class="field"><input id="cc" placeholder="Ex.: 1207RL, long taper, membrana" value="${esc(c?.cod||'')}"></div></div>
+    <div><label>${c?'Quantidade atual':'Estoque inicial'}</label><div class="field"><input id="cq" inputmode="numeric" placeholder="0" value="${c?est[id]:''}"></div></div>
+    <div><label>Avisar quando chegar em</label><div class="field"><input id="cmin" inputmode="numeric" placeholder="Ex.: 5" value="${c?.min??''}"></div></div>
+  </div>
+  ${c?'<div class="hint">Se mudar a quantidade atual, o app registra um “ajuste de contagem” no histórico.</div>':''}
+  <div class="btns">${c?`<button class="btn del" onclick="A.excluirCart('${id}')">Excluir</button>`:''}<button class="btn ghost" onclick="A.fecharCart()">Cancelar</button><button class="btn" onclick="A.salvarCart()">${c?'Salvar':'Adicionar'}</button></div></div>`;
+}
+function listaEstoque(){
+  const est=estoqueMap(),b=norm(UI.busca);
+  let cs=ativos().filter(c=>(!UI.marca||c.marca===UI.marca)&&(!UI.baixa||baixo(c,est[c.id]))&&(!b||busc(c).includes(b)||busc(c).replace(/ /g,'').includes(b.replace(/ /g,''))));
+  if(!S.carts.filter(c=>!c.arq).length)return `<ul class="list"><li class="empty">Nenhum cartucho cadastrado ainda.<br>Toque em “＋ Novo cartucho”.</li></ul>`;
+  if(!cs.length)return `<ul class="list"><li class="empty">Nada encontrado.</li></ul>`;
+  const grupos={};cs.forEach(c=>(grupos[c.marca]=grupos[c.marca]||[]).push(c));
+  return Object.entries(grupos).map(([m,l])=>`<div class="lhead"><span>${esc(m)}</span><b>${l.reduce((s,c)=>s+est[c.id],0)} un.</b></div>
+    <ul class="list">${l.map(c=>{const q=est[c.id],low=baixo(c,q);return `<li class="tap ${UI.edit.cart===c.id?'editing':''}" onclick="A.acoes('${c.id}')">
+      <div class="cb ${q<=0?'zero':''}"><b>${c.tipo||'—'}</b><small>${c.tipo?'tipo':'sem tipo'}</small></div>
+      <div class="g"><div class="t nm">${nomen(c)}</div><div class="s">${esc(c.marca)}${c.cod?' · '+esc(c.cod):''}${c.min?` · aviso em ${c.min}`:''}</div></div>
+      <div class="qt ${low?'low':''}">${q}<small>${q<=0?'zerado':low?'baixo':'un.'}</small></div></li>`}).join('')}</ul>`).join('');
+}
+function vEstoque(){
+  const est=estoqueMap(),cs=ativos(),tot=cs.reduce((s,c)=>s+Math.max(0,est[c.id]),0),nb=cs.filter(c=>baixo(c,est[c.id])).length;
+  const marcas=[...new Set(cs.map(c=>c.marca))];
+  return `${UI.cartForm||UI.edit.cart?formCart():''}
+  <div class="stats three"><div class="stat"><div class="lbl">Cartuchos</div><div class="v">${tot}</div></div><div class="stat"><div class="lbl">Modelos</div><div class="v">${cs.length}</div></div><div class="stat" onclick="A.filtroBaixa()" style="cursor:pointer"><div class="lbl">Em baixa</div><div class="v" style="${nb?'color:var(--warn)':''}">${nb}</div></div></div>
+  ${UI.cartForm||UI.edit.cart?'':`<button class="btn" style="width:100%;margin-bottom:14px" onclick="A.novoCart()">＋ Novo cartucho</button>`}
+  ${cs.length?`<div class="field search"><span>⌕</span><input placeholder="Buscar: marca, 10 07 RL, 1007RL…" value="${esc(UI.busca)}" oninput="UI.busca=this.value;$('lst').innerHTML=listaEstoque()"></div>
+  <div class="chips"><button class="${!UI.marca&&!UI.baixa?'on':''}" onclick="A.filtro('')">Todos</button>${marcas.map(m=>`<button class="${UI.marca===m?'on':''}" data-m="${esc(m)}" onclick="A.filtro(this.dataset.m)">${esc(m)}</button>`).join('')}<button class="${UI.baixa?'on':''}" onclick="A.filtroBaixa()">⚠ Em baixa</button></div>`:''}
+  <div id="lst">${listaEstoque()}</div>`;
+}
+
+/* ---------- SAÍDA / ENTRADA ---------- */
+function listaMov(tipo){
+  const est=estoqueMap(UI.edit.mov),b=norm(UI.mbusca);
+  // inclui cartuchos arquivados que já estejam nesta movimentação
+  let cs=S.carts.filter(c=>!c.arq||UI.sel[c.id]).sort(ordem);
+  if(b)cs=cs.filter(c=>UI.sel[c.id]||busc(c).replace(/ /g,'').includes(b.replace(/ /g,'')));
+  if(!cs.length)return `<ul class="list"><li class="empty">${S.carts.length?'Nada encontrado.':'Cadastre os cartuchos no Estoque primeiro.'}</li></ul>`;
+  return `<ul class="list">${cs.map(c=>{const n=UI.sel[c.id]||0,q=est[c.id],fica=tipo==='sai'?q-n:q+n;return `<li id="r_${c.id}" class="${n?'sel':''}">
+    <div class="cb ${q<=0&&tipo==='sai'?'zero':''}"><b>${c.tipo||'—'}</b><small>${c.tipo?'tipo':'sem tipo'}</small></div>
+    <div class="g"><div class="t nm">${nomen(c)}</div><div class="s" id="s_${c.id}">${esc(c.marca)} · ${n?`fica com <b style="${fica<0?'color:var(--warn)':''}">${fica}</b>`:`estoque ${q}`}</div></div>
+    <div class="step"><button onclick="A.step('${c.id}',-1)" aria-label="menos">−</button><span id="n_${c.id}">${n}</span><button onclick="A.step('${c.id}',1)" aria-label="mais">+</button></div></li>`}).join('')}</ul>`;
+}
+function vMov(tipo){
+  const sai=tipo==='sai',tot=Object.values(UI.sel).reduce((s,n)=>s+n,0),ed=UI.edit.mov;
+  return `<div class="card"><h2>${sai?'Sessão':'Reposição'} <small>· ${sai?'quais cartuchos foram usados':'cartuchos que chegaram'}</small></h2><div class="grid">
+    <div><label>Data</label><div class="field"><input type="date" value="${UI.mdata}" onchange="UI.mdata=this.value"></div></div>
+    <div><label>${sai?'Cliente':'Fornecedor / loja'}</label><div class="field"><input ${sai?'list="dlCli" autocomplete="off"':''} placeholder="${sai?'Nome do cliente':'Opcional'}" value="${esc(UI.mcli)}" oninput="UI.mcli=this.value"></div></div>
+    <div class="full"><label>Observação <span style="font-weight:400">(opcional)</span></label><div class="field"><input placeholder="${sai?'Ex.: fine line no antebraço, 2ª sessão':'Ex.: pedido nº 1234'}" value="${esc(UI.mobs)}" oninput="UI.mobs=this.value"></div></div>
+  </div></div>
+  <div class="lhead"><span>Toque em ＋ nos cartuchos ${sai?'usados':'que chegaram'}</span></div>
+  <div class="field search"><span>⌕</span><input placeholder="Buscar cartucho…" value="${esc(UI.mbusca)}" oninput="UI.mbusca=this.value;$('lst').innerHTML=listaMov('${tipo}')"></div>
+  <div id="lst">${listaMov(tipo)}</div>
+  ${ed?`<div class="btns" style="margin:0 0 4px"><button class="btn del" style="flex:1" onclick="A.excluirMov('${ed}')">Excluir registro</button><button class="btn ghost" onclick="A.cancelarMov()">Cancelar</button></div>`:''}
+  <div class="sticky"><button class="btn" id="bsalvar" onclick="A.salvarMov('${tipo}')">${rotSalvar(tipo,tot)}</button></div>`;
+}
+const rotSalvar=(tipo,n)=>n?`${UI.edit.mov?'Salvar alteração':tipo==='sai'?'Registrar saída':'Registrar entrada'} · ${n} cartucho${n>1?'s':''}`:(tipo==='sai'?'Escolha os cartuchos usados':'Escolha os cartuchos');
+
+/* ---------- HISTÓRICO ---------- */
+function rotMov(m){
+  if(m.tipo==='sai')return esc(m.cliente||'Sem cliente');
+  if(m.tipo==='ent')return 'Entrada'+(m.cliente?' · '+esc(m.cliente):'');
+  return 'Ajuste de contagem';
+}
+function vHistorico(){
+  const b=norm(UI.hbusca);
+  let ms=S.movs.filter(m=>b?true:m.data.slice(0,7)===UI.mes);
+  const doMes=S.movs.filter(m=>m.data.slice(0,7)===UI.mes);
+  const sais=doMes.filter(m=>m.tipo==='sai'),usados=sais.reduce((s,m)=>s+totalItens(m),0),ents=doMes.filter(m=>m.tipo==='ent').reduce((s,m)=>s+totalItens(m),0);
+  const ncli=new Set(sais.map(m=>norm(m.cliente))).size;
+  if(UI.hfiltro!=='tudo')ms=ms.filter(m=>UI.hfiltro==='sai'?m.tipo==='sai':m.tipo!=='sai');
+  if(b)ms=ms.filter(m=>norm(m.cliente+' '+m.obs+' '+m.itens.map(i=>nomeCart(cart(i.c))).join(' ')).includes(b));
+  ms.sort((x,y)=>y.data.localeCompare(x.data)||(y.criado||0)-(x.criado||0));
+  // mais usados no mês
+  const uso={};sais.forEach(m=>m.itens.forEach(i=>uso[i.c]=(uso[i.c]||0)+i.q));
+  const top=Object.entries(uso).sort((a,b)=>b[1]-a[1]).slice(0,5),mx=top.length?top[0][1]:1;
+  let html='',dia='';
+  ms.forEach(m=>{if(m.data!==dia){dia=m.data;html+=`<li class="day">${diaBR(dia)}</li>`}
+    const n=totalItens(m),neg=m.tipo==='sai'||(m.tipo==='aj'&&m.itens.reduce((s,i)=>s+i.q,0)<0);
+    html+=`<li class="tap" onclick="A.abrirMov('${m.id}')"><div class="g"><div class="t">${rotMov(m)}</div>
+      <div class="s wrap">${m.itens.map(i=>`${Math.abs(i.q)}× ${esc(nomeCart(cart(i.c)))}`).join(' · ')}</div>${m.obs?`<div class="s">${esc(m.obs)}</div>`:''}</div>
+      <div class="v ${neg?'out':'in'}">${neg?'−':'+'}${n}</div></li>`});
+  return `${b?'':`<div class="stats three"><div class="stat"><div class="lbl">Usados</div><div class="v">${usados}</div></div><div class="stat"><div class="lbl">Clientes</div><div class="v">${ncli}</div></div><div class="stat"><div class="lbl">Entraram</div><div class="v">${ents}</div></div></div>`}
+  <div class="field search"><span>⌕</span><input id="hb" placeholder="Buscar cliente ou cartucho" value="${esc(UI.hbusca)}" onchange="A.hbusca(this.value)" onkeydown="if(event.key==='Enter')this.blur()"></div>
+  <div class="chips">${[['tudo','Tudo'],['sai','Saídas'],['ent','Entradas e ajustes']].map(([k,n])=>`<button class="${UI.hfiltro===k?'on':''}" onclick="UI.hfiltro='${k}';render()">${n}</button>`).join('')}${b?`<button onclick="A.hbusca('')">✕ Limpar busca</button>`:''}</div>
+  ${b?`<div class="hint" style="margin:-2px 2px 10px">${ms.length} registro${ms.length===1?'':'s'} com “${esc(UI.hbusca)}” em todos os meses</div>`:''}
+  <ul class="list">${html||`<li class="empty">${b?'Nada encontrado.':'Nenhum registro neste mês.'}</li>`}</ul>
+  ${!b&&top.length?`<div class="card"><h2>Mais usados no mês</h2><div class="rows">${top.map(([id,q])=>`<div class="r"><div class="rt"><span>${esc(nomeCart(cart(id)))}</span><span>${q}</span></div><div class="bar"><i style="width:${q/mx*100}%;background:var(--accent)"></i></div></div>`).join('')}</div></div>`:''}`;
+}
+
+/* ---------- AJUSTES ---------- */
+function vAjustes(){
+  const arq=S.carts.filter(c=>c.arq).sort(ordem);
+  return `<div class="card"><h2>Marcas <small>· toque para renomear ou excluir</small></h2><div class="tags">${S.marcas.map((m,i)=>`<button onclick="A.editMarca(${i})">${esc(m)}</button>`).join('')}<button class="add" onclick="A.addMarca()">＋ Nova</button></div></div>
+  ${arq.length?`<div class="card"><h2>Cartuchos excluídos <small>· continuam no histórico</small></h2><ul class="list" style="margin:0">${arq.map(c=>`<li><div class="g"><div class="t">${esc(nomeCart(c))}</div></div><button class="linkbtn" onclick="A.restaurarCart('${c.id}')">restaurar</button></li>`).join('')}</ul></div>`:''}
+  <div class="card"><h2>Backup</h2><div class="hint" style="margin:0 0 4px">Os dados ficam guardados só neste iPhone. Faça backup de vez em quando e salve no iCloud Drive.</div>
+    <div class="btns"><button class="btn" onclick="A.backup()">Fazer backup</button><button class="btn ghost" onclick="$('imp').click()">Restaurar</button></div>
+    <input type="file" id="imp" accept=".json,application/json" style="display:none" onchange="A.restaurar(this)">
+    <div class="btns" style="margin-top:8px"><button class="btn ghost" onclick="A.csv('estoque')">Estoque (.csv)</button><button class="btn ghost" onclick="A.csv('hist')">Histórico (.csv)</button></div>
+    <div class="btns" style="margin-top:8px"><button class="btn del" style="flex:1" onclick="A.zerar()">Apagar todos os dados</button></div></div>
+  <div class="hint" style="text-align:center">${S.carts.filter(c=>!c.arq).length} cartuchos cadastrados · ${S.movs.length} registros no histórico</div>`;
+}
+
+/* ---------- ações ---------- */
+function baixar(nome,conteudo,tipo){const b=new Blob([conteudo],{type:tipo}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=nome;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(u);a.remove()},500)}
+const csvCel=v=>{v=String(v??'');return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+const A={
+  ir(t){if(t==='saida'||t==='entrada')A.limparMov();UI.tab=t;UI.edit.cart=null;UI.cartForm=false;try{localStorage.setItem('ms-tab',t)}catch(e){}window.scrollTo(0,0);render()},
+  mes(n){UI.mes=addMes(UI.mes,n);render()},
+  // estoque
+  novoCart(){UI.cartForm=true;UI.edit.cart=null;render();window.scrollTo(0,0)},
+  fecharCart(){UI.cartForm=false;UI.edit.cart=null;render()},
+  editarCart(id){UI.edit.cart=id;UI.cartForm=false;UI.tab='estoque';render();window.scrollTo({top:0,behavior:'smooth'})},
+  tipo(b){b.parentNode.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b))},
+  novaMarcaSel(s){if(s.value!=='__nova')return;perguntar('Nome da nova marca','',v=>{if(!S.marcas.some(m=>norm(m)===norm(v))){S.marcas.push(v);S.marcas.sort((a,b)=>a.localeCompare(b,'pt'));salvar()}
+      const nm=S.marcas.find(m=>norm(m)===norm(v));s.innerHTML=optsMarca(nm)+'<option value="__nova">＋ Nova marca…</option>'});
+    s.value=S.marcas[0]||''},
+  salvarCart(){const id=UI.edit.cart,marca=$('cm').value;if(!marca||marca==='__nova')return toast('Escolha a marca');
+    const ag=inteiro($('ca').value);if(!ag)return toast('Informe o nº de agulhas');
+    const tipo=$('ct').querySelector('.on')?.dataset.k??'';const diam=$('cdm').querySelector('.on')?.dataset.k||'10';const cod=$('cc').value.trim();
+    const qtxt=$('cq').value.trim(),q=qtxt===''?(id?null:0):inteiro(qtxt);const min=$('cmin').value.trim()===''?null:inteiro($('cmin').value);
+    const dup=S.carts.find(c=>c.id!==id&&!c.arq&&c.marca===marca&&c.agulhas===ag&&c.tipo===tipo&&c.diam===diam&&norm(c.cod)===norm(cod));
+    if(dup)return toast('Esse cartucho já está cadastrado');
+    const o={marca,diam,agulhas:ag,tipo,cod,min};UI.ultMarca=marca;UI.ultDiam=diam;UI.ultTipo=tipo;
+    if(id){const c=cart(id);Object.assign(c,o);if(q!=null){const atual=estoqueMap()[id];if(q!==atual)S.movs.push({id:uid(),criado:Date.now(),tipo:'aj',data:hoje(),cliente:'',obs:`Contagem: ${atual} → ${q}`,itens:[{c:id,q:q-atual}]})}}
+    else{const nid=uid();S.carts.push({id:nid,...o});if(q>0)S.movs.push({id:uid(),criado:Date.now(),tipo:'ent',data:hoje(),cliente:'',obs:'Estoque inicial',itens:[{c:nid,q}]})}
+    UI.cartForm=false;UI.edit.cart=null;salvar();render();toast(id?'Alterado':'Cartucho adicionado')},
+  excluirCart(id){const usado=S.movs.some(m=>m.itens.some(i=>i.c===id));
+    confirmar(usado?'Excluir este cartucho do estoque? Ele continua aparecendo no histórico (dá para restaurar em Ajustes).':'Excluir este cartucho?',()=>{
+      if(usado)cart(id).arq=true;else S.carts=S.carts.filter(c=>c.id!==id);UI.edit.cart=null;salvar();render();toast('Excluído')})},
+  restaurarCart(id){cart(id).arq=false;salvar();render();toast('Restaurado')},
+  filtro(m){UI.marca=m;UI.baixa=false;render()},
+  filtroBaixa(){UI.baixa=!UI.baixa;UI.marca='';render()},
+  acoes(id){const c=cart(id),q=estoqueMap()[id];
+    dialogo(`<h3 class="nm">${nomen(c)}</h3><div class="sub">${esc(c.marca)}${c.cod?' · '+esc(c.cod):''} · <b>${q}</b> em estoque</div>
+      <div class="vbtns"><button class="btn" data-a="sai">− Registrar uso (saída)</button><button class="btn ghost" data-a="ent">＋ Registrar entrada</button><button class="btn ghost" data-a="hist">Ver onde foi usado</button><button class="btn ghost" data-a="ed">Editar / ajustar quantidade</button></div>`,d=>{
+      d.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{d.remove();const a=b.dataset.a;
+        if(a==='ed')return A.editarCart(id);
+        if(a==='hist'){UI.hbusca=nomeCart(c);UI.hfiltro='tudo';return A.irSem('historico')}
+        A.limparMov();UI.sel[id]=1;A.irSem(a==='sai'?'saida':'entrada')})})},
+  irSem(t){UI.tab=t;UI.cartForm=false;UI.edit.cart=null;try{localStorage.setItem('ms-tab',t)}catch(e){}window.scrollTo(0,0);render()},
+  // movimentação
+  limparMov(){UI.sel={};UI.mdata=hoje();UI.mcli='';UI.mobs='';UI.mbusca='';UI.edit.mov=null},
+  step(id,d){const n=Math.max(0,(UI.sel[id]||0)+d);if(n)UI.sel[id]=n;else delete UI.sel[id];
+    const tipo=UI.tab==='saida'?'sai':'ent',q=estoqueMap(UI.edit.mov)[id],fica=tipo==='sai'?q-n:q+n,c=cart(id);
+    $('n_'+id).textContent=n;$('r_'+id).classList.toggle('sel',!!n);
+    $('s_'+id).innerHTML=`${esc(c.marca)} · ${n?`fica com <b style="${fica<0?'color:var(--warn)':''}">${fica}</b>`:`estoque ${q}`}`;
+    $('bsalvar').textContent=rotSalvar(tipo,Object.values(UI.sel).reduce((s,x)=>s+x,0))},
+  salvarMov(tipo){const itens=Object.entries(UI.sel).filter(([,q])=>q>0).map(([c,q])=>({c,q}));
+    if(!itens.length)return toast('Toque em ＋ nos cartuchos');
+    const cli=UI.mcli.trim();if(tipo==='sai'&&!cli)return toast('Informe o cliente');
+    const fim=()=>{const id=UI.edit.mov,o={tipo,data:UI.mdata||hoje(),cliente:cli,obs:UI.mobs.trim(),itens};
+      if(id)Object.assign(S.movs.find(m=>m.id===id),o);else S.movs.push({id:uid(),criado:Date.now(),...o});
+      salvar();A.limparMov();
+      if(id){UI.mes=o.data.slice(0,7);A.irSem('historico')}else{render();window.scrollTo(0,0)}
+      toast(id?'Alterado':tipo==='sai'?'Saída registrada':'Entrada registrada')};
+    if(tipo==='sai'){const est=estoqueMap(UI.edit.mov);if(itens.some(i=>est[i.c]-i.q<0))return confirmar('Algum cartucho vai ficar com estoque negativo. Registrar mesmo assim?',fim,'Registrar','var(--accent)')}
+    fim()},
+  abrirMov(id){const m=S.movs.find(x=>x.id===id);
+    if(m.tipo==='aj')return confirmar(`Ajuste de contagem em ${dataBR(m.data)} (${m.obs}). Excluir este ajuste?`,()=>{S.movs=S.movs.filter(x=>x.id!==id);salvar();render()});
+    A.limparMov();UI.edit.mov=id;m.itens.forEach(i=>UI.sel[i.c]=(UI.sel[i.c]||0)+i.q);UI.mdata=m.data;UI.mcli=m.cliente||'';UI.mobs=m.obs||'';A.irSem(m.tipo==='sai'?'saida':'entrada')},
+  cancelarMov(){A.limparMov();A.irSem('historico')},
+  excluirMov(id){confirmar('Excluir este registro? O estoque será recalculado.',()=>{S.movs=S.movs.filter(x=>x.id!==id);salvar();A.limparMov();A.irSem('historico');toast('Excluído')})},
+  hbusca(v){UI.hbusca=v.trim();render()},
+  // marcas
+  addMarca(){perguntar('Nome da nova marca','',v=>{if(S.marcas.some(m=>norm(m)===norm(v)))return toast('Essa marca já existe');S.marcas.push(v);S.marcas.sort((a,b)=>a.localeCompare(b,'pt'));salvar();render()})},
+  editMarca(i){const ant=S.marcas[i],usada=S.carts.some(c=>c.marca===ant);
+    dialogo(`<p>Marca</p><div class="field"><input value="${esc(ant)}"></div><div class="btns">${usada?'':'<button class="btn del" data-x>Excluir</button>'}<button class="btn ghost" data-n>Cancelar</button><button class="btn" data-s>Salvar</button></div>${usada?'<div class="hint">Marca em uso — ao renomear, os cartuchos são atualizados.</div>':''}`,d=>{
+      const inp=d.querySelector('input');d.querySelector('[data-n]').onclick=()=>d.remove();
+      d.querySelector('[data-x]')?.addEventListener('click',()=>{S.marcas.splice(i,1);salvar();d.remove();render()});
+      d.querySelector('[data-s]').onclick=()=>{const v=inp.value.trim();if(!v)return;S.marcas[i]=v;S.carts.forEach(c=>{if(c.marca===ant)c.marca=v});S.marcas.sort((a,b)=>a.localeCompare(b,'pt'));salvar();d.remove();render()}})},
+  // backup
+  backup(){baixar(`MaluStock-backup-${hoje()}.json`,JSON.stringify(S),'application/json');toast('Backup gerado')},
+  restaurar(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d||!Array.isArray(d.carts)||!Array.isArray(d.movs))throw 0;
+      confirmar('Substituir os dados atuais pelo backup?',()=>{S=Object.assign(padrao(),d);migrar();salvar();render();toast('Backup restaurado')},'Restaurar','var(--accent)')}catch(e){toast('Arquivo inválido')}inp.value=''};r.readAsText(f)},
+  csv(q){let linhas;
+    if(q==='estoque'){const est=estoqueMap();linhas=[['Nomenclatura','Marca','Diâmetro','Nº agulhas','Tipo','Código/obs','Quantidade','Aviso em']].concat(ativos().map(c=>[nomen(c),c.marca,c.diam,pad(c.agulhas),c.tipo,c.cod,est[c.id],c.min??'']))}
+    else{linhas=[['Data','Tipo','Cliente/Fornecedor','Nomenclatura','Marca','Diâmetro','Nº agulhas','Tipo','Quantidade','Observação']];
+      [...S.movs].sort((a,b)=>a.data.localeCompare(b.data)).forEach(m=>m.itens.forEach(i=>{const c=cart(i.c)||{};linhas.push([dataBR(m.data),{sai:'Saída',ent:'Entrada',aj:'Ajuste'}[m.tipo],m.cliente,c.id?nomen(c):'',c.marca,c.diam,c.agulhas!=null?pad(c.agulhas):'',c.tipo,sinal(m,i.q),m.obs])}))}
+    baixar(`MaluStock-${q==='estoque'?'estoque':'historico'}-${hoje()}.csv`,'﻿'+linhas.map(l=>l.map(csvCel).join(';')).join('\r\n'),'text/csv;charset=utf-8')},
+  zerar(){confirmar('Apagar TODOS os cartuchos e o histórico deste aparelho? Não dá para desfazer.',()=>{S=padrao();salvar();A.limparMov();render();toast('Dados apagados')},'Apagar tudo')}
+};
+
+render();
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
